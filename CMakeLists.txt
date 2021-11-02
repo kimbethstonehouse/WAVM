@@ -106,6 +106,7 @@ endif()
 if(WAVM_ENABLE_RUNTIME)
 	# Find an installed build of LLVM
 	find_package(LLVM REQUIRED CONFIG)
+	find_package(LLVMJIT)
 
 	if(LLVM_VERSION_MAJOR LESS 6)
 		message(FATAL_ERROR "WAVM requires LLVM version 6.0 or newer")
@@ -677,6 +678,7 @@ else()
 endif()
 WAVM_SET_TARGET_COMPILE_OPTIONS(libWAVM)
 WAVM_INSTALL_TARGET(libWAVM)
+#WAVM_INSTALL_TARGET(libLLVMJIT)
 set_target_properties(libWAVM PROPERTIES
 	FOLDER Libraries
 	INSTALL_RPATH_USE_LINK_PATH TRUE
@@ -716,7 +718,7 @@ if(WAVM_ENABLE_RUNTIME)
 	add_subdirectory(Include/WAVM/RuntimeABI)
 	add_subdirectory(Lib/Emscripten)
 	add_subdirectory(Lib/ObjectCache)
-	add_subdirectory(Lib/LLVMJIT)
+#	add_subdirectory(LLVMJIT)
 	add_subdirectory(Lib/Runtime)
 	add_subdirectory(Lib/ThreadTest)
 	add_subdirectory(Lib/WASI)
@@ -729,8 +731,8 @@ endif()
 
 # Add the library dependencies accumulated from the various library components as link dependencies
 # of the monolithic WAVM library.
-target_link_libraries(libWAVM PRIVATE ${WAVM_MONOLIB_PRIVATE_LIBS})
-target_link_libraries(libWAVM PUBLIC ${WAVM_MONOLIB_PUBLIC_LIBS})
+target_link_libraries(libWAVM PRIVATE ${WAVM_MONOLIB_PRIVATE_LIBS} ${LLVMJIT_PATH})
+target_link_libraries(libWAVM PUBLIC ${WAVM_MONOLIB_PUBLIC_LIBS} ${LLVMJIT_PATH})
 
 # Set the non-compiled source files accumulated from the various library components as header-only,
 # which includes the files in IDE projects, but doesn't compile them.

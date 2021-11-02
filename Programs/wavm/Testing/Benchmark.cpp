@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <LLVMJIT.h>
 
 #include "WAVM/IR/Module.h"
 #include "WAVM/IR/Operators.h"
@@ -13,7 +14,6 @@
 #include "WAVM/Inline/BasicTypes.h"
 #include "WAVM/Inline/Errors.h"
 #include "WAVM/Inline/Timing.h"
-#include "WAVM/LLVMJIT/LLVMJIT.h"
 #include "WAVM/Logging/Logging.h"
 #include "WAVM/Platform/Thread.h"
 #include "WAVM/Runtime/Intrinsics.h"
