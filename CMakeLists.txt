@@ -106,11 +106,19 @@ endif()
 if(WAVM_ENABLE_RUNTIME)
 	# Find an installed build of LLVM
 	find_package(LLVM REQUIRED CONFIG)
-	find_package(LLVMJIT)
+#	link_directories(${llvm-dirs})
 
-	if(LLVM_VERSION_MAJOR LESS 6)
-		message(FATAL_ERROR "WAVM requires LLVM version 6.0 or newer")
-	endif()
+	find_library(LLVMJIT_PATH LLVMJIT)
+	add_library(LLVMJIT SHARED IMPORTED GLOBAL)
+	set_property(TARGET LLVMJIT PROPERTY
+			IMPORTED_LOCATION ${LLVMJIT_PATH})
+
+	find_path(LLVMJIT_HEADER_PATH LLVMJIT.h)
+
+
+	#	if(LLVM_VERSION_MAJOR LESS 6)
+#		message(FATAL_ERROR "WAVM requires LLVM version 6.0 or newer")
+#	endif()
 
 	# Convert LLVM_DEFINITIONS and LLVM_INCLUDE_DIRS from strings of space-separated elements to
 	# CMake lists (strings with semicolon-separated elements).
@@ -731,8 +739,11 @@ endif()
 
 # Add the library dependencies accumulated from the various library components as link dependencies
 # of the monolithic WAVM library.
-target_link_libraries(libWAVM PRIVATE ${WAVM_MONOLIB_PRIVATE_LIBS} ${LLVMJIT_PATH})
-target_link_libraries(libWAVM PUBLIC ${WAVM_MONOLIB_PUBLIC_LIBS} ${LLVMJIT_PATH})
+target_link_libraries(libWAVM PRIVATE LLVMJIT ${WAVM_MONOLIB_PRIVATE_LIBS})
+target_link_libraries(libWAVM PUBLIC LLVMJIT ${WAVM_MONOLIB_PUBLIC_LIBS})
+target_include_directories(libWAVM PRIVATE ${LLVMJIT_HEADER_PATH})
+target_include_directories(libWAVM PUBLIC ${LLVMJIT_HEADER_PATH})
+
 
 # Set the non-compiled source files accumulated from the various library components as header-only,
 # which includes the files in IDE projects, but doesn't compile them.
