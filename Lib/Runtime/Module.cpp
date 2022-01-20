@@ -75,17 +75,19 @@ bool Runtime::loadBinaryModule(const U8* wasmBytes,
 	if(!objectCache)
 	{
 		// If there's no global object cache, just compile the module.
+//		printf("No global object cache");
 		objectCode = LLVMJIT::compileModule(irModule, LLVMJIT::getHostTargetSpec());
 	}
 	else
 	{
+//		printf("Using global object cache");
 		// Check for cached object code for the module before compiling it.
 		objectCode = objectCache->getCachedObject(wasmBytes, numWASMBytes, [&irModule]() {
 			return LLVMJIT::compileModule(irModule, LLVMJIT::getHostTargetSpec());
 		});
 	}
 
-	outModule = std::make_shared<Runtime::Module>(std::move(irModule), std::move(objectCode));
+	outModule = std::make_shared<Runtime::Module>(std::move(irModule), std::move(objectCode));;
 	return true;
 }
 

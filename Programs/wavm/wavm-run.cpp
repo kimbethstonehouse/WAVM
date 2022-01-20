@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <sys/time.h>
 #include "WAVM/Emscripten/Emscripten.h"
 #include "WAVM/IR/FeatureSpec.h"
 #include "WAVM/IR/Module.h"
@@ -36,6 +37,9 @@
 using namespace WAVM;
 using namespace WAVM::IR;
 using namespace WAVM::Runtime;
+
+double compile_s;
+double run_s;
 
 // A resolver that generates a stub if an inner resolver does not resolve a name.
 struct StubFallbackResolver : Resolver
@@ -73,6 +77,9 @@ static bool loadTextOrBinaryModule(const char* filename,
 								   const IR::FeatureSpec& featureSpec,
 								   ModuleRef& outModule)
 {
+	// Start measuring time
+	struct timeval begin, end;
+	gettimeofday(&begin, 0);
 	// If the file starts with the WASM binary magic number, load it as a binary module.
 	if(fileBytes.size() >= sizeof(WASM::magicNumber)
 	   && !memcmp(fileBytes.data(), WASM::magicNumber, sizeof(WASM::magicNumber)))
@@ -80,7 +87,15 @@ static bool loadTextOrBinaryModule(const char* filename,
 		WASM::LoadError loadError;
 		if(Runtime::loadBinaryModule(
 			   fileBytes.data(), fileBytes.size(), outModule, featureSpec, &loadError))
-		{ return true; }
+		{
+			// Stop measuring time and calculate the elapsed time
+			gettimeofday(&end, 0);
+			long seconds = end.tv_sec - begin.tv_sec;
+			long microseconds = end.tv_usec - begin.tv_usec;
+			double elapsed = seconds + microseconds*1e-6;
+			compile_s+=elapsed;
+			return true;
+		}
 		else
 		{
 			Log::printf(Log::error,
@@ -107,7 +122,6 @@ static bool loadTextOrBinaryModule(const char* filename,
 
 		// Compile the IR.
 		outModule = Runtime::compileModule(irModule);
-
 		return true;
 	}
 }
@@ -820,6 +834,11 @@ struct State
 
 		// Execute the program.
 		Timing::Timer executionTimer;
+
+		// Start measuring time
+		struct timeval begin, end;
+		gettimeofday(&begin, 0);
+
 		auto executeThunk = [&] { return execute(irModule, instance); };
 		int result;
 		if(emscriptenProcess) { result = Emscripten::catchExit(std::move(executeThunk)); }
@@ -832,6 +851,12 @@ struct State
 			result = executeThunk();
 		}
 		Timing::logTimer("Executed program", executionTimer);
+		// Stop measuring time and calculate the elapsed time
+		gettimeofday(&end, 0);
+		long seconds = end.tv_sec - begin.tv_sec;
+		long microseconds = end.tv_usec - begin.tv_usec;
+		double elapsed = seconds + microseconds*1e-6;
+		run_s+=elapsed;
 
 		// Log the peak memory usage.
 		Uptr peakMemoryUsage = Platform::getPeakMemoryUsageBytes();
@@ -850,6 +875,9 @@ struct State
 											Errors::fatalf("Runtime exception: %s",
 														   describeException(exception).c_str());
 										});
+
+		printf("Compile time: %.2f s\n", compile_s);
+		printf("Run time: %.2f s\n", run_s);
 		return result;
 	}
 };
@@ -857,5 +885,7 @@ struct State
 int execRunCommand(int argc, char** argv)
 {
 	State state;
+	compile_s=0;
+	run_s=0;
 	return state.runAndCatchRuntimeExceptions(argv);
 }

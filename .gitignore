@@ -3,3 +3,4 @@
 **/CMakeFiles
 **/Makefile
 *.cmake
+cmake-build-debug/
